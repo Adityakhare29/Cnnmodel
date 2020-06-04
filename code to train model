@@ -1,0 +1,59 @@
+import keras
+from keras.utils import to_categorical
+import numpy as np
+from keras.models import Sequential
+from keras.layers import MaxPooling2D,Conv2D,Dense,Flatten,Activation
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelBinarizer
+
+import pickle
+import glob
+import cv2
+
+
+images = []
+labels = []
+for j in ['Emma','Zayn']:
+    for i in glob.glob(r"DatasetForModel\{}\*.*".format(j)):
+        labels.append(j)
+        img = cv2.imread(i)
+        img = cv2.resize(img,(64,64))
+        images.append(img)
+images = np.array(images,dtype="float32")/255.0
+labels = np.array(labels)
+
+traini, testi, trainl, testl = train_test_split(images, labels, test_size=0.2)
+lb = LabelBinarizer()
+trainl = lb.fit_transform(trainl)
+testl = lb.fit_transform(testl)
+
+trainl = to_categorical(trainl)
+testl = to_categorical(testl)
+
+model = Sequential()
+
+
+model.add(Conv2D(32,(3,3),input_shape=(64,64,3)))
+model.add(Activation("relu"))
+
+model.add(Conv2D(64,(3,3)))
+model.add(Activation("relu"))
+
+model.add(Conv2D(32,(3,3)))
+model.add(Activation("relu"))
+
+model.add(Flatten())
+model.add(Dense(len(lb.classes_),activation="softmax"))
+
+model.compile(loss="binary_crossentropy",optimizer="sgd",metrics=['accuracy'])
+m = model.fit(traini, trainl, validation_data=(testi, testl),epochs=35,batch_size=20)
+
+
+
+model.save('DatasetForModel/CNN_With_Relu.model')
+
+
+f = open("DatasetForModel/label.txt", "wb")
+f.write(pickle.dumps(lb))
+f.close()
